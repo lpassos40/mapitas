@@ -29,7 +29,7 @@ export default defineConfig(({ command, isPreview }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,json}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,json,woff2}'],
         runtimeCaching: [
           {
             // Só os tiles já vistos; nada de pré-download (política de uso da OSM).

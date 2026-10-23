@@ -76,7 +76,10 @@ export function MapView({ dataset, plan, position, visible, centerTick }: Props)
     const dim = plan !== null;
     for (const s of dataset.shapes) {
       const aprox = s.precisao === 'aproximado';
-      L.polyline(s.pontos, { color: lineColor(dataset, s.linha), weight: 5, opacity: dim ? 0.2 : aprox ? 0.6 : 0.9 })
+      const opacity = dim ? 0.2 : aprox ? 0.75 : 1;
+      // Contorno preto por baixo, no estilo do resto do app.
+      L.polyline(s.pontos, { color: '#000', weight: 9, opacity, interactive: false }).addTo(g);
+      L.polyline(s.pontos, { color: lineColor(dataset, s.linha), weight: 5, opacity })
         .bindPopup(`${dataset.lines.find((l) => l.id === s.linha)?.nome ?? s.linha}${aprox ? '<br>⚠️ traçado aproximado' : ''}`)
         .addTo(g);
     }
@@ -86,14 +89,11 @@ export function MapView({ dataset, plan, position, visible, centerTick }: Props)
       if (sa && sb) L.polyline([[sa.lat, sa.lng], [sb.lat, sb.lng]], { ...WALK_STYLE, opacity: dim ? 0.3 : 0.9 }).addTo(g);
     }
     for (const s of dataset.stops) {
-      const aprox = s.precisao === 'aproximado';
-      L.circleMarker([s.lat, s.lng], {
-        radius: s.tipo === 'referencia' ? 9 : 8,
-        color: s.tipo === 'referencia' ? '#2e7d32' : '#212121',
-        weight: 3,
-        dashArray: aprox ? '3 3' : undefined,
-        fillColor: s.tipo === 'referencia' ? '#66bb6a' : '#ffeb3b',
-        fillOpacity: 1,
+      const cls = `stop-pin stop-${s.tipo}${s.precisao === 'aproximado' ? ' stop-aprox' : ''}`;
+      L.marker([s.lat, s.lng], {
+        icon: L.divIcon({ className: '', html: `<div class="${cls}"></div>`, iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -12] }),
+        keyboard: true,
+        title: s.nome,
       })
         .bindPopup(stopPopup(s))
         .addTo(g);
@@ -109,11 +109,12 @@ export function MapView({ dataset, plan, position, visible, centerTick }: Props)
     for (const leg of plan.legs) {
       const pts = legPoints(dataset, leg);
       if (pts.length === 0) continue;
-      const style: L.PolylineOptions =
-        leg.tipo === 'caminhada'
-          ? { ...WALK_STYLE, weight: 6, color: '#424242' }
-          : { color: lineColor(dataset, leg.linha!), weight: 8, opacity: 0.95 };
-      L.polyline(pts, style).addTo(g);
+      if (leg.tipo === 'caminhada') {
+        L.polyline(pts, { ...WALK_STYLE, weight: 6, color: '#000' }).addTo(g);
+      } else {
+        L.polyline(pts, { color: '#000', weight: 13, interactive: false }).addTo(g);
+        L.polyline(pts, { color: lineColor(dataset, leg.linha!), weight: 8 }).addTo(g);
+      }
       pts.forEach((p) => bounds.extend(p));
     }
     if (bounds.isValid()) map.current!.fitBounds(bounds, { paddingTopLeft: [32, 32], paddingBottomRight: [32, 220] });

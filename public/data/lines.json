@@ -3,7 +3,7 @@
     "id": "itamarati",
     "nome": "Itamarati Cedral ⇄ Rio Preto",
     "operadora": "Expresso Itamarati",
-    "cor": "#d32f2f",
+    "cor": "#ff3b30",
     "sentidos": [
       {
         "id": "cedral-rp",
@@ -31,7 +31,7 @@
     "id": "110",
     "nome": "110 Distrito Carlos Arnaldo",
     "operadora": "RioPretrans",
-    "cor": "#1565c0",
+    "cor": "#2f6bff",
     "sentidos": [
       {
         "id": "circular",
