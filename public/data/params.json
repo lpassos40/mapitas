@@ -1,0 +1,9 @@
+{
+  "viagemItamarati": 40,
+  "caminhadaRodoviariaTerminal": 10,
+  "onibus110TerminalQualisol": 30,
+  "onibus110QualisolCentro": 30,
+  "caminhadaFabricaPonto": 5,
+  "folgaMinima": 20,
+  "margemBaldeacao": 5
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "rod-cedral",
+    "nome": "Rodoviária de Cedral",
+    "tipo": "embarque",
+    "observacao": "Endereço da rodoviária não encontrado; posição do Centro de Cedral. Corrija no local.",
+    "lat": -20.902166,
+    "lng": -49.270176,
+    "precisao": "aproximado"
+  },
+  {
+    "id": "rod-rp",
+    "nome": "Rodoviária de Rio Preto",
+    "tipo": "desembarque",
+    "observacao": "Rua Pedro Amaral, s/n. Desce e embarca o Itamarati.",
+    "lat": -20.807347,
+    "lng": -49.379456,
+    "precisao": "aproximado"
+  },
+  {
+    "id": "terminal",
+    "nome": "Terminal Urbano",
+    "tipo": "embarque",
+    "observacao": "Rua Bernardino de Campos, 2491. Partidas da 110.",
+    "lat": -20.808515,
+    "lng": -49.37673,
+    "precisao": "aproximado"
+  },
+  {
+    "id": "p110-gino",
+    "nome": "Ponto da 110 — Rua Gino Cecconi",
+    "tipo": "desembarque",
+    "observacao": "Desce na ida; embarca na volta (a 110 segue o circuito até o Centro).",
+    "lat": -20.728765,
+    "lng": -49.340738,
+    "precisao": "aproximado"
+  },
+  {
+    "id": "qualisol",
+    "nome": "Qualisol",
+    "tipo": "referencia",
+    "observacao": "Rua Kamel Chaddad, 100 — Distrito Industrial Dr. Carlos Arnaldo e Silva, CEP 15052-755.",
+    "lat": -20.729421,
+    "lng": -49.340845,
+    "precisao": "aproximado"
+  }
+]

@@ -1,0 +1,15 @@
+[
+  { "data": "01-01", "nome": "Confraternização Universal" },
+  { "data": "pascoa-2", "nome": "Sexta-feira Santa" },
+  { "data": "03-19", "nome": "São José (aniversário de Rio Preto)" },
+  { "data": "04-21", "nome": "Tiradentes" },
+  { "data": "05-01", "nome": "Dia do Trabalho" },
+  { "data": "pascoa+60", "nome": "Corpus Christi" },
+  { "data": "07-09", "nome": "Revolução Constitucionalista (SP)" },
+  { "data": "09-07", "nome": "Independência" },
+  { "data": "10-12", "nome": "Nossa Senhora Aparecida" },
+  { "data": "11-02", "nome": "Finados" },
+  { "data": "11-15", "nome": "Proclamação da República" },
+  { "data": "11-20", "nome": "Dia da Consciência Negra" },
+  { "data": "12-25", "nome": "Natal" }
+]
