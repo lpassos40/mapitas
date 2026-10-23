@@ -1,38 +1,30 @@
 import { Fragment } from 'preact';
+import type { StepKind } from '../domain/nextStep';
 import type { Leg, Plan } from '../domain/planner';
 import { formatDuration, formatMinutes } from '../domain/time';
 import { IDS, type Dataset } from '../domain/types';
+import { LineBadge, shortName } from './ui';
 
-export function planTitle(plan: Plan): string {
-  return plan.sentido === 'ida'
-    ? `Ida · chega ${formatMinutes(plan.chegada)}`
-    : `Volta · chega ${formatMinutes(plan.chegada)}`;
+function kindOf(leg: Leg): StepKind {
+  return leg.tipo === 'caminhada' ? 'caminhada' : leg.linha === IDS.itamarati ? 'itamarati' : '110';
 }
 
-function legText(leg: Leg, name: (id: string) => string): string {
-  if (leg.tipo === 'caminhada') return `A pé até ${name(leg.para)} (${formatDuration(leg.fim - leg.inicio)})`;
-  const linha = leg.linha === IDS.itamarati ? 'Itamarati' : '110 Distrito Carlos Arnaldo';
-  return `${linha}: ${name(leg.de)} → ${name(leg.para)}, chega ${formatMinutes(leg.fim)}`;
-}
-
+/** Trechos em uma linha cada: horário · selo · de → para. */
 export function PlanLegs({ plan, dataset }: { plan: Plan; dataset: Dataset }) {
-  const name = (id: string) => dataset.stops.find((s) => s.id === id)?.nome ?? id;
-  const color = (leg: Leg) => (leg.tipo === 'caminhada' ? 'var(--walk)' : dataset.lines.find((l) => l.id === leg.linha)?.cor);
+  const name = (id: string) => shortName(dataset, id);
   return (
     <ol class="legs">
       {plan.legs.map((leg, i) => {
         const wait = i > 0 ? leg.inicio - plan.legs[i - 1].fim : 0;
         return (
           <Fragment key={i}>
-            {wait > 0 && (
-              <li class="leg leg-wait">
-                <span class="leg-time" />
-                <span>espera {formatDuration(wait)}</span>
-              </li>
-            )}
-            <li class={`leg leg-${leg.tipo}`} style={{ '--leg-color': color(leg) }}>
+            {wait > 0 && <li class="leg-wait">espera {formatDuration(wait)}</li>}
+            <li class="leg">
               <span class="leg-time">{formatMinutes(leg.inicio)}</span>
-              <span>{legText(leg, name)}</span>
+              <LineBadge kind={kindOf(leg)} dataset={dataset} />
+              <span class="leg-where">
+                {leg.tipo === 'caminhada' ? `${formatDuration(leg.fim - leg.inicio)} até ${name(leg.para)}` : `${name(leg.de)} → ${name(leg.para)}`}
+              </span>
             </li>
           </Fragment>
         );

@@ -54,6 +54,14 @@ export function MapView({ dataset, plan, position, visible, centerTick }: Props)
   const planLayer = useRef<L.LayerGroup | null>(null);
   const me = useRef<{ dot: L.CircleMarker; acc: L.Circle } | null>(null);
   const centeredOnce = useRef(false);
+  const pendingFit = useRef<L.LatLngBounds | null>(null);
+
+  function fitPending() {
+    const b = pendingFit.current;
+    if (!b || !map.current) return;
+    pendingFit.current = null;
+    map.current.fitBounds(b, { paddingTopLeft: [24, 80], paddingBottomRight: [24, 240] });
+  }
 
   useEffect(() => {
     const m = L.map(el.current!, { zoomControl: false, attributionControl: true }).setView([-20.81, -49.33], 11);
@@ -117,7 +125,14 @@ export function MapView({ dataset, plan, position, visible, centerTick }: Props)
       }
       pts.forEach((p) => bounds.extend(p));
     }
-    if (bounds.isValid()) map.current!.fitBounds(bounds, { paddingTopLeft: [32, 32], paddingBottomRight: [32, 220] });
+    // Escondido (outra aba), o mapa tem tamanho zero: enquadra quando aparecer.
+    pendingFit.current = bounds.isValid() ? bounds : null;
+    if (visible) {
+      setTimeout(() => {
+        map.current?.invalidateSize();
+        fitPending();
+      }, 0);
+    }
   }, [plan, dataset]);
 
   // Minha posição.
@@ -146,7 +161,11 @@ export function MapView({ dataset, plan, position, visible, centerTick }: Props)
 
   // O mapa fica montado nas outras abas; ao voltar, recalcula o tamanho.
   useEffect(() => {
-    if (visible) setTimeout(() => map.current?.invalidateSize(), 0);
+    if (!visible) return;
+    setTimeout(() => {
+      map.current?.invalidateSize();
+      fitPending();
+    }, 0);
   }, [visible]);
 
   return <div ref={el} class="map" />;

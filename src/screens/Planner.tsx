@@ -1,36 +1,54 @@
 import { PlanLegs } from '../components/PlanView';
-import { DayPicker } from '../components/DayPicker';
-import { planIda, planVolta, timetablesFor, type Plan } from '../domain/planner';
-import { formatMinutes, isValidTime, toMinutes } from '../domain/time';
+import { AppBar, DaySelect, TripStrip } from '../components/ui';
+import { planIda, planVolta, timetablesFor, waitingTime, type Plan } from '../domain/planner';
+import { formatDuration, formatMinutes, isValidTime, toMinutes } from '../domain/time';
 import type { Dataset, DayType } from '../domain/types';
 import { go, useLocal, useTodayType } from '../hooks';
 import { setPlan } from '../state';
 
-function Option({ label, hint, plan, dataset }: { label: string; hint: string; plan: Plan | null; dataset: Dataset }) {
+interface OptionProps {
+  tag: string;
+  tone: 'yellow' | 'green' | 'plain';
+  plan: Plan | null;
+  dataset: Dataset;
+  emptyText?: string;
+}
+
+function Option({ tag, tone, plan, dataset, emptyText }: OptionProps) {
   if (!plan) {
     return (
-      <article class="card option option-empty">
-        <h3>{label}</h3>
-        <p>Nenhuma combinação chega a tempo.</p>
+      <article class="option is-empty">
+        <header class="option-head">
+          <span class={`tag tag-${tone}`}>{tag}</span>
+        </header>
+        <p class="option-empty">{emptyText ?? 'Nenhuma combinação chega a tempo.'}</p>
       </article>
     );
   }
-  const show = () => {
-    setPlan(plan);
-    go('mapa');
-  };
+  const first = plan.legs.find((l) => l.tipo === 'onibus')!;
+  const wait = waitingTime(plan);
   return (
-    <article class="card option">
-      <button class="option-hit" onClick={show} aria-label={`${label}: ver no mapa`}>
-        <h3>
-          {label} <small>{hint}</small>
-        </h3>
-        <p class="option-summary">
-          {plan.sentido === 'ida' ? `Sai ${formatMinutes(plan.saida)}` : `110 passa ${formatMinutes(plan.legs[1].inicio)}`} → chega{' '}
-          <strong>{formatMinutes(plan.chegada)}</strong>
-        </p>
-        <PlanLegs plan={plan} dataset={dataset} />
-        <span class="option-cta">Ver no mapa ›</span>
+    <article class="option">
+      <header class="option-head">
+        <span class={`tag tag-${tone}`}>{tag}</span>
+        <span class="option-arrive">
+          <small>chega</small> {formatMinutes(plan.chegada)}
+        </span>
+      </header>
+      <p class="option-sub">
+        {plan.sentido === 'ida' ? `Sair de Cedral às ${formatMinutes(first.inicio)}` : `Pegar a 110 às ${formatMinutes(first.inicio)}`}
+        {wait > 0 && ` · ${formatDuration(wait)} de espera`}
+      </p>
+      <TripStrip plan={plan} dataset={dataset} />
+      <PlanLegs plan={plan} dataset={dataset} />
+      <button
+        class="btn btn-block"
+        onClick={() => {
+          setPlan(plan);
+          go('mapa');
+        }}
+      >
+        Ver no mapa
       </button>
     </article>
   );
@@ -52,48 +70,55 @@ export function Planner({ dataset }: { dataset: Dataset }) {
 
   return (
     <div class="screen">
-      <h1>Planejar</h1>
-      <div class="segmented" role="tablist">
-        <button role="tab" aria-selected={mode === 'ida'} onClick={() => setMode('ida')}>
-          Ida
-        </button>
-        <button role="tab" aria-selected={mode === 'volta'} onClick={() => setMode('volta')}>
-          Volta
-        </button>
+      <AppBar title="Planejar">
+        <DaySelect value={dayChoice} today={today} onChange={setDayChoice} />
+      </AppBar>
+
+      <div class="planner-form">
+        <div class="segmented" role="tablist">
+          <button role="tab" aria-selected={mode === 'ida'} onClick={() => setMode('ida')}>
+            Ida
+          </button>
+          <button role="tab" aria-selected={mode === 'volta'} onClick={() => setMode('volta')}>
+            Volta
+          </button>
+        </div>
+        <label class="time-field">
+          <span>{mode === 'ida' ? 'Chegar na Qualisol até' : 'Sair da fábrica às'}</span>
+          <input type="time" value={value} onInput={(e) => setValue(e.currentTarget.value)} required />
+        </label>
       </div>
-
-      <label class="field field-big">
-        <span>{mode === 'ida' ? 'Preciso chegar na Qualisol às' : 'Saio da fábrica às'}</span>
-        <input type="time" value={value} onInput={(e) => setValue(e.currentTarget.value)} required />
-      </label>
-
-      <DayPicker value={dayChoice} today={today} onChange={setDayChoice} />
 
       {!valid && <p class="warn">Informe um horário.</p>}
 
       {valid && mode === 'ida' && (() => {
         const r = planIda(t, p, toMinutes(value));
         return (
-          <>
-            <Option label="No limite" hint="última que chega a tempo" plan={r.noLimite} dataset={dataset} />
-            <Option label="Com folga" hint={`chega ${p.folgaMinima} min antes ou mais`} plan={r.comFolga} dataset={dataset} />
-          </>
+          <div class="options">
+            <Option tag="Com folga" tone="green" plan={r.comFolga} dataset={dataset} />
+            <Option tag="No limite" tone="yellow" plan={r.noLimite} dataset={dataset} />
+          </div>
         );
       })()}
 
       {valid && mode === 'volta' && (() => {
         const plans = planVolta(t, p, toMinutes(value));
         if (plans.length === 0) {
-          return (
-            <article class="card option option-empty">
-              <p>Sem combinação de volta para hoje depois desse horário.</p>
-            </article>
-          );
+          return <Option tag="Volta" tone="plain" plan={null} dataset={dataset} emptyText="Sem combinação de volta depois desse horário." />;
         }
-        return plans.map((plan, i) => (
-          <Option key={i} label={i === 0 ? 'Primeira opção' : `Opção ${i + 1}`} hint="" plan={plan} dataset={dataset} />
-        ));
+        return (
+          <div class="options">
+            {plans.map((plan, i) => (
+              <Option key={i} tag={i === 0 ? 'Primeira' : `${i + 1}ª opção`} tone={i === 0 ? 'green' : 'plain'} plan={plan} dataset={dataset} />
+            ))}
+          </div>
+        );
       })()}
+
+      <p class="note">
+        Tempos usados: Itamarati {p.viagemItamarati} min, 110 {p.onibus110TerminalQualisol} min, folga {p.folgaMinima} min, baldeação{' '}
+        {p.margemBaldeacao} min. Mude em Ajustes.
+      </p>
     </div>
   );
 }

@@ -1,11 +1,19 @@
-import { firstAtOrAfter, type Leg, type Plan, type Timetables } from './planner';
+import type { Leg, Plan, Timetables } from './planner';
 import { IDS, type Params, type Stop } from './types';
+
+export type StepKind = 'itamarati' | '110' | 'caminhada';
 
 export interface NextStep {
   /** Ex.: "Itamarati sai de Cedral" */
   titulo: string;
   /** minutos desde 00:00 em que acontece */
   quando: number;
+  tipo: StepKind;
+  /** IDs dos pontos do trecho */
+  de: string;
+  para: string;
+  /** próximas partidas depois desta (só sem plano ativo) */
+  seguintes: number[];
   /** trecho do plano, quando há plano ativo */
   leg?: Leg;
 }
@@ -35,7 +43,8 @@ export function legTitle(leg: Leg, stopName: (id: string) => string): string {
 export function nextFromPlan(plan: Plan, now: number, stopName: (id: string) => string): NextStep | null {
   const leg = plan.legs.find((l) => l.fim > now);
   if (!leg) return null;
-  return { titulo: legTitle(leg, stopName), quando: leg.inicio, leg };
+  const tipo: StepKind = leg.tipo === 'caminhada' ? 'caminhada' : leg.linha === IDS.itamarati ? 'itamarati' : '110';
+  return { titulo: legTitle(leg, stopName), quando: leg.inicio, tipo, de: leg.de, para: leg.para, seguintes: [], leg };
 }
 
 type Zone = 'cedral' | 'centro' | 'fabrica' | 'desconhecida';
@@ -75,22 +84,21 @@ export function guessNextStep(
 ): NextStep | null {
   const zone = zoneOf(pos, stops);
   const indo = now < MEIO_DIA;
-  const itamaratiCedral = (): NextStep | null => {
-    const q = firstAtOrAfter(t.itamaratiIda, now);
-    return q === undefined ? null : { titulo: 'Itamarati sai de Cedral', quando: q };
+  const departure = (times: number[], step: Omit<NextStep, 'quando' | 'seguintes'>): NextStep | null => {
+    const i = times.findIndex((x) => x >= now);
+    return i < 0 ? null : { ...step, quando: times[i], seguintes: times.slice(i + 1, i + 3) };
   };
-  const itamaratiRP = (): NextStep | null => {
-    const q = firstAtOrAfter(t.itamaratiVolta, now);
-    return q === undefined ? null : { titulo: 'Itamarati sai da Rodoviária de Rio Preto', quando: q };
-  };
-  const l110Terminal = (): NextStep | null => {
-    const q = firstAtOrAfter(t.l110, now);
-    return q === undefined ? null : { titulo: '110 sai do Terminal Urbano', quando: q };
-  };
-  const l110Ponto = (): NextStep | null => {
-    const q = firstAtOrAfter(t.l110.map((x) => x + p.onibus110TerminalQualisol), now);
-    return q === undefined ? null : { titulo: '110 passa no ponto da Qualisol', quando: q };
-  };
+  const itamaratiCedral = () =>
+    departure(t.itamaratiIda, { titulo: 'Itamarati sai de Cedral', tipo: 'itamarati', de: IDS.rodCedral, para: IDS.rodRP });
+  const itamaratiRP = () =>
+    departure(t.itamaratiVolta, { titulo: 'Itamarati sai da Rodoviária de Rio Preto', tipo: 'itamarati', de: IDS.rodRP, para: IDS.rodCedral });
+  const l110Terminal = () =>
+    departure(t.l110, { titulo: '110 sai do Terminal Urbano', tipo: '110', de: IDS.terminal, para: IDS.ponto110 });
+  const l110Ponto = () =>
+    departure(
+      t.l110.map((x) => x + p.onibus110TerminalQualisol),
+      { titulo: '110 passa no ponto da Qualisol', tipo: '110', de: IDS.ponto110, para: IDS.terminal },
+    );
 
   switch (zone) {
     case 'cedral':

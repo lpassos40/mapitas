@@ -1,8 +1,22 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { exportJson, importJson } from '../data/store';
 import { isValidTime } from '../domain/time';
 import { DAY_TYPE_LABEL, DAY_TYPES, type Dataset, type DayType, type Params, type Precision } from '../domain/types';
+import { AppBar } from '../components/ui';
 import { keepEdits, replaceDataset, resetToDefaults, updateDataset, type AppState } from '../state';
+
+function Section({ title, hint, open, children }: { title: string; hint?: string; open?: boolean; children: ComponentChildren }) {
+  return (
+    <details class="section" open={open}>
+      <summary>
+        <span>{title}</span>
+        {hint && <small>{hint}</small>}
+      </summary>
+      <div class="section-body">{children}</div>
+    </details>
+  );
+}
 
 const PARAM_LABEL: Record<keyof Params, string> = {
   viagemItamarati: 'Viagem do Itamarati (Cedral ⇄ Rio Preto)',
@@ -16,25 +30,27 @@ const PARAM_LABEL: Record<keyof Params, string> = {
 
 function ParamsEditor({ params }: { params: Params }) {
   return (
-    <section class="card">
-      <h2>Tempos (minutos)</h2>
+    <Section title="Tempos" hint="minutos de cada etapa" open>
       {(Object.keys(PARAM_LABEL) as (keyof Params)[]).map((k) => (
         <label class="field field-row" key={k}>
           <span>{PARAM_LABEL[k]}</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={240}
-            value={params[k]}
-            onChange={(e) => {
-              const v = Number(e.currentTarget.value);
-              if (Number.isFinite(v) && v >= 0) void updateDataset((d) => ({ ...d, params: { ...d.params, [k]: Math.round(v) } }));
-            }}
-          />
+          <span class="num-input">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={240}
+              value={params[k]}
+              onChange={(e) => {
+                const v = Number(e.currentTarget.value);
+                if (Number.isFinite(v) && v >= 0) void updateDataset((d) => ({ ...d, params: { ...d.params, [k]: Math.round(v) } }));
+              }}
+            />
+            <span>min</span>
+          </span>
         </label>
       ))}
-    </section>
+    </Section>
   );
 }
 
@@ -67,8 +83,7 @@ function TimesField({ lineId, dirId, day, times }: { lineId: string; dirId: stri
 
 function SchedulesEditor({ dataset }: { dataset: Dataset }) {
   return (
-    <section class="card">
-      <h2>Horários</h2>
+    <Section title="Horários" hint="editar as tabelas">
       <p class="note">Separe por espaço. Ao sair do campo, a lista é ordenada e salva.</p>
       {dataset.lines.flatMap((l) =>
         l.sentidos.map((s) => (
@@ -82,7 +97,7 @@ function SchedulesEditor({ dataset }: { dataset: Dataset }) {
           </fieldset>
         )),
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -90,8 +105,7 @@ function StopsEditor({ dataset }: { dataset: Dataset }) {
   const patch = (id: string, changes: Partial<Dataset['stops'][number]>) =>
     void updateDataset((d) => ({ ...d, stops: d.stops.map((s) => (s.id === id ? { ...s, ...changes } : s)) }));
   return (
-    <section class="card">
-      <h2>Pontos</h2>
+    <Section title="Pontos" hint={`${dataset.stops.filter((s) => s.precisao === 'aproximado').length} aproximados`}>
       <p class="note">Na Fase 3 o app marca pelo GPS. Por enquanto, cole a coordenada (ex.: do Google Maps).</p>
       {dataset.stops.map((s) => (
         <fieldset key={s.id}>
@@ -118,7 +132,7 @@ function StopsEditor({ dataset }: { dataset: Dataset }) {
           {s.observacao && <p class="note">{s.observacao}</p>}
         </fieldset>
       ))}
-    </section>
+    </Section>
   );
 }
 
@@ -133,8 +147,7 @@ function Backup({ dataset, edited }: { dataset: Dataset; edited: boolean }) {
   const [msg, setMsg] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
   return (
-    <section class="card">
-      <h2>Backup</h2>
+    <Section title="Backup" hint={edited ? 'há edições neste aparelho' : 'dados do repositório'}>
       <p class="note">
         {edited ? 'Você tem edições salvas neste aparelho.' : 'Usando os dados do repositório.'} Exporte para commitar
         as correções (veja o README).
@@ -173,7 +186,7 @@ function Backup({ dataset, edited }: { dataset: Dataset; edited: boolean }) {
         </button>
       </div>
       {msg && <p class="note" role="status">{msg}</p>}
-    </section>
+    </Section>
   );
 }
 
@@ -181,7 +194,7 @@ export function Settings({ state }: { state: AppState }) {
   const dataset = state.dataset!;
   return (
     <div class="screen">
-      <h1>Ajustes</h1>
+      <AppBar title="Ajustes" />
       {state.defaultsChanged && (
         <section class="card banner">
           <p>Os dados do repositório mudaram desde suas edições neste aparelho.</p>

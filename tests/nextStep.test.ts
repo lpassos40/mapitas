@@ -56,3 +56,18 @@ describe('nextFromPlan', () => {
     expect(nextFromPlan(plan, toMinutes('09:10'), name)).toBeNull();
   });
 });
+
+describe('próximas partidas', () => {
+  it('traz a linha, o trecho e as duas partidas seguintes', () => {
+    const s = guessNextStep(t, P, toMinutes('06:30'), { lat: -20.901, lng: -49.271 }, stops)!;
+    expect(s.tipo).toBe('itamarati');
+    expect([s.de, s.para]).toEqual(['rod-cedral', 'rod-rp']);
+    expect(s.seguintes.map(formatMinutes)).toEqual(['07:00', '07:50']);
+  });
+
+  it('a última do dia não tem seguintes', () => {
+    const s = guessNextStep(t, P, toMinutes('22:00'), { lat: -20.901, lng: -49.271 }, stops)!;
+    expect(formatMinutes(s.quando)).toBe('22:15');
+    expect(s.seguintes).toEqual([]);
+  });
+});
